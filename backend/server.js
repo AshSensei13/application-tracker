@@ -151,7 +151,10 @@ app.post('/api/applications', async (req, res) => {
     }
 });
 
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`DevPath API is running at http://localhost:${PORT}`);
+    });
+}
 
-app.listen(PORT, () => {
-    console.log(`DevPath API is running at http://localhost:${PORT}`)
-})
+module.exports = app;
