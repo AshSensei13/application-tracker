@@ -77,6 +77,81 @@ app.get('/api/applications', async (req, res) => {
     }
 });
 
+
+ // Create a new job application
+app.post('/api/applications', async (req, res) => {
+    const {
+        company_id,
+        job_title,
+        job_description,
+        job_url,
+        application_status,
+        date_applied,
+    } = req.body;
+
+    // Validate required fields
+    if (!company_id || !job_title) {
+        return res.status(400).json({
+            success: false,
+            message: 'Company ID and job title are required',
+        });
+    }
+
+    try {
+        const result = await pool.query(
+            `
+                INSERT INTO job_applications (
+                    company_id,
+                    job_title,
+                    job_description,
+                    job_url,
+                    application_status,
+                    date_applied
+                )
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *
+            `,
+            [
+                company_id,
+                job_title,
+                job_description || null,
+                job_url || null,
+                application_status || 'saved',
+                date_applied || null,
+            ]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: 'Job application created successfully',
+            data: result.rows[0],
+        });
+    } catch (error) {
+        console.error('Error creating application:', error.message);
+
+        // Error code: Foreign key violation
+        if (error.code === '23503') {
+            return res.status(400).json({
+                success: false,
+                message: 'The specified company does not exist',
+            });
+        }
+        // Error code: Check constraint violation
+        if (error.code === '23514') {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid application status',
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create job application',
+        });
+    }
+});
+
+
 app.listen(PORT, () => {
     console.log(`DevPath API is running at http://localhost:${PORT}`)
 })
